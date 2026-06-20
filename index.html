@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TuBingo Pro - Login</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --blue: #3b82f6; --text: #f8fafc; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
@@ -37,6 +39,7 @@
 </div>
 
 <script src="configuracion.js"></script>
+
 <script>
     async function ejecutarLogin() {
         const emailInput = document.getElementById('email').value.trim();
@@ -44,7 +47,6 @@
         const errDiv = document.getElementById('error');
         const btnLogin = document.getElementById('btn-login');
         
-        // Limpiamos mensajes de error anteriores
         errDiv.style.display = "none";
         errDiv.innerText = "";
 
@@ -55,11 +57,10 @@
         }
 
         try {
-            // Cambiamos el texto del botón para dar respuesta visual de carga
             btnLogin.innerText = "Verificando...";
             btnLogin.disabled = true;
 
-            // 🔍 Buscamos en tu tabla personalizada perfiles
+            // Realizamos la consulta directa a tu tabla transparente
             const { data: listadoPerfiles, error } = await supabase
                 .from('perfiles')
                 .select('*')
@@ -70,27 +71,24 @@
                 throw new Error("Fallo en Base de Datos: " + error.message);
             }
 
-            // 🚨 Corrección Clave: Si la lista está vacía, los datos son incorrectos
             if (!listadoPerfiles || listadoPerfiles.length === 0) {
                 errDiv.innerText = "Correo electrónico o contraseña incorrectos.";
                 errDiv.style.display = "block";
                 return;
             }
 
-            // Extraemos el primer usuario encontrado de la lista de manera segura
             const usuarioValido = listadoPerfiles[0];
 
-            // Validamos si lo tienes activo en tu tabla
             if (!usuarioValido.activo) {
                 errDiv.innerText = "Esta cuenta ha sido desactivada por el administrador.";
                 errDiv.style.display = "block";
                 return;
             }
 
-            // Guardamos la sesión localmente en formato JSON plano stringificado
+            // Guardamos los datos del perfil en la memoria local del navegador
             localStorage.setItem('usuario_bingo', JSON.stringify(usuarioValido));
 
-            // Enrutamos según el rol de la tabla pública
+            // Redirección de acuerdo a tu columna 'rol'
             if (usuarioValido.rol === 'admin' || usuarioValido.rol === 'vendedor') {
                 window.location.href = "panel.html";
             } else {
@@ -99,10 +97,9 @@
 
         } catch (err) {
             console.error("Detalles del error interno:", err);
-            errDiv.innerText = "Error de comunicación: " + err.message;
+            errDiv.innerText = "Error: " + err.message;
             errDiv.style.display = "block";
         } finally {
-            // El bloque 'finally' asegura que pase lo que pase, el botón se vuelva a activar
             btnLogin.innerText = "Iniciar Sesión";
             btnLogin.disabled = false;
         }
