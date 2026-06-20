@@ -38,45 +38,42 @@
 
 <script src="configuracion.js"></script>
 <script>
-    // Si la sesión ya existe en las cookies/local, redirige de inmediato
-    window.addEventListener('DOMContentLoaded', async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) enrutarPerfil(session.user.id);
-    });
-
     async function ejecutarLogin() {
-        const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value.trim();
+        const emailInput = document.getElementById('email').value.trim();
+        const passwordInput = document.getElementById('password').value.trim();
         const errDiv = document.getElementById('error');
         errDiv.style.display = "none";
 
-        if(!email || !password) {
+        if(!emailInput || !passwordInput) {
             errDiv.innerText = "Por favor, complete todos los campos.";
             errDiv.style.display = "block";
             return;
         }
 
-        // 🛡️ Autenticación Nativa vía Supabase Auth (Cumple OWASP)
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        // 🔍 Consulta directa sobre tu tabla personalizada
+        const { data: perfil, error } = await supabase
+            .from('perfiles')
+            .select('*')
+            .eq('email', emailInput)
+            .eq('password', passwordInput)
+            .single();
 
-        if (error) {
-            errDiv.innerText = "Credenciales de acceso incorrectas.";
+        if (error || !perfil) {
+            errDiv.innerText = "Correo o contraseña incorrectos.";
             errDiv.style.display = "block";
             return;
         }
 
-        enrutarPerfil(data.user.id);
-    }
-
-    async function enrutarPerfil(uid) {
-        const { data: perfil } = await supabase.from('perfiles').select('rol, activo').eq('id', uid).single();
-        if (!perfil || !perfil.activo) {
-            alert("Cuenta inactiva.");
-            await supabase.auth.signOut();
-            location.reload();
+        if (!perfil.activo) {
+            errDiv.innerText = "Esta cuenta ha sido desactivada.";
+            errDiv.style.display = "block";
             return;
         }
 
+        // Guardamos la sesión de manera directa
+        localStorage.setItem('usuario_bingo', JSON.stringify(perfil));
+
+        // Enrutamiento directo
         if (perfil.rol === 'admin' || perfil.rol === 'vendedor') {
             window.location.href = "panel.html";
         } else {
