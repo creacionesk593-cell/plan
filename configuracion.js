@@ -2,7 +2,8 @@
 const SUPABASE_URL = "https://ucakdjketghwimjxxuie.supabase.co"; 
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjYWtkamtldGdod2ltanh4dWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5ODQ4NjksImV4cCI6MjA5NzU2MDg2OX0.FRAS_QgF9MdZ2UgEypX3lzLwuNJ494RbLmCHC-_NTUM";
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// CORRECCIÓN CRÍTICA DE INICIALIZACIÓN
+const supabase = supabasejs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 function obtenerUsuarioLocal() {
     const sesion = localStorage.getItem('usuario_bingo');
@@ -13,7 +14,6 @@ async function verificarAccesoAdmin() {
     const usuario = obtenerUsuarioLocal();
     if (!usuario) { window.location.href = "index.html"; return null; }
 
-    // Validación en tiempo real contra tu tabla perfiles
     const { data: perfil, error } = await supabase.from('perfiles').select('*').eq('id', usuario.id).single();
     if (error || !perfil || (perfil.rol !== 'admin' && perfil.rol !== 'vendedor') || !perfil.activo) {
         alert("⛔ Acceso Denegado.");
