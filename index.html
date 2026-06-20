@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo Pro - Iniciar Sesión</title>
+    <title>TuBingo Pro - Login</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --blue: #3b82f6; --text: #f8fafc; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; height: 100vh; }
         .login-card { background: var(--card); padding: 35px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid #334155; }
-        h2 { text-align: center; margin-bottom: 25px; font-weight: 600; color: #fff; }
+        h2 { text-align: center; margin-bottom: 25px; color: #fff; font-size: 24px; }
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-size: 13px; color: #94a3b8; }
         .form-control { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: white; font-size: 14px; }
@@ -23,64 +23,60 @@
 <body>
 
 <div class="login-card">
-    <h2>Sistema Bingo Pro</h2>
+    <h2>Consola TuBingo Pro</h2>
     <div class="form-group">
         <label>Correo Electrónico</label>
         <input type="email" id="email" class="form-control" placeholder="ejemplo@correo.com" required>
     </div>
     <div class="form-group">
-        <label>Contraseña</label>
+        <label>Contraseña Acceso</label>
         <input type="password" id="password" class="form-control" placeholder="••••••••" required>
     </div>
-    <button class="btn" onclick="ejecutarLogin()">Ingresar al Sistema</button>
+    <button class="btn" onclick="ejecutarLogin()">Iniciar Sesión</button>
     <div id="error" class="error-msg"></div>
 </div>
 
-<!-- Carga de Configuración y Lógica de Enrutamiento -->
 <script src="configuracion.js"></script>
 <script>
-    // Verificar si ya tiene sesión iniciada al entrar para redirigir automáticamente
+    // Si la sesión ya existe en las cookies/local, redirige de inmediato
     window.addEventListener('DOMContentLoaded', async () => {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            enrutarUsuario(session.user.id);
-        }
+        if (session) enrutarPerfil(session.user.id);
     });
 
     async function ejecutarLogin() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
         const errDiv = document.getElementById('error');
         errDiv.style.display = "none";
 
         if(!email || !password) {
-            errDiv.innerText = "Por favor, llene todos los campos.";
+            errDiv.innerText = "Por favor, complete todos los campos.";
             errDiv.style.display = "block";
             return;
         }
 
+        // 🛡️ Autenticación Nativa vía Supabase Auth (Cumple OWASP)
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
         if (error) {
-            errDiv.innerText = "Credenciales incorrectas o usuario no registrado.";
+            errDiv.innerText = "Credenciales de acceso incorrectas.";
             errDiv.style.display = "block";
             return;
         }
 
-        enrutarUsuario(data.user.id);
+        enrutarPerfil(data.user.id);
     }
 
-    async function enrutarUsuario(userId) {
-        const { data: perfil } = await supabase.from('perfiles').select('rol, activo').eq('id', userId).single();
-        
+    async function enrutarPerfil(uid) {
+        const { data: perfil } = await supabase.from('perfiles').select('rol, activo').eq('id', uid).single();
         if (!perfil || !perfil.activo) {
-            alert("Su usuario está desactivado. Contacte soporte.");
+            alert("Cuenta inactiva.");
             await supabase.auth.signOut();
             location.reload();
             return;
         }
 
-        // 🛡️ ENRUTAMIENTO OWASP BASADO EN ROL REAL DESDE BASE DE DATOS
         if (perfil.rol === 'admin' || perfil.rol === 'vendedor') {
             window.location.href = "panel.html";
         } else {
