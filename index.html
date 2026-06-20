@@ -44,7 +44,7 @@
         const errDiv = document.getElementById('error');
         const btnLogin = document.getElementById('btn-login');
         
-        // Limpiar estados previos
+        // Limpiamos mensajes de error anteriores
         errDiv.style.display = "none";
         errDiv.innerText = "";
 
@@ -55,54 +55,54 @@
         }
 
         try {
-            // Cambiar estado del botón para que el usuario sepa que está cargando
+            // Cambiamos el texto del botón para dar respuesta visual de carga
             btnLogin.innerText = "Verificando...";
             btnLogin.disabled = true;
 
-            // 🔍 Consulta directa sobre tu tabla personalizada
-            const { data: perfil, error } = await supabase
+            // 🔍 Buscamos en tu tabla personalizada perfiles
+            const { data: listadoPerfiles, error } = await supabase
                 .from('perfiles')
                 .select('*')
                 .eq('email', emailInput)
                 .eq('password', passwordInput);
 
-            // Si hay un error de red o de Supabase
             if (error) {
-                throw new Error("Error en la base de datos: " + error.message);
+                throw new Error("Fallo en Base de Datos: " + error.message);
             }
 
-            // Si la consulta no trajo registros significa que los datos no coinciden
-            if (!perfil || perfil.length === 0) {
+            // 🚨 Corrección Clave: Si la lista está vacía, los datos son incorrectos
+            if (!listadoPerfiles || listadoPerfiles.length === 0) {
                 errDiv.innerText = "Correo electrónico o contraseña incorrectos.";
                 errDiv.style.display = "block";
                 return;
             }
 
-            const usuarioEcontrado = perfil[0];
+            // Extraemos el primer usuario encontrado de la lista de manera segura
+            const usuarioValido = listadoPerfiles[0];
 
-            // Validar si el usuario está activo en tu tabla
-            if (!usuarioEcontrado.activo) {
+            // Validamos si lo tienes activo en tu tabla
+            if (!usuarioValido.activo) {
                 errDiv.innerText = "Esta cuenta ha sido desactivada por el administrador.";
                 errDiv.style.display = "block";
                 return;
             }
 
-            // Guardamos la sesión completa de manera directa para el uso de las otras páginas
-            localStorage.setItem('usuario_bingo', JSON.stringify(usuarioEcontrado));
+            // Guardamos la sesión localmente en formato JSON plano stringificado
+            localStorage.setItem('usuario_bingo', JSON.stringify(usuarioValido));
 
-            // Enrutamiento correcto según el rol de la tabla
-            if (usuarioEcontrado.rol === 'admin' || usuarioEcontrado.rol === 'vendedor') {
+            // Enrutamos según el rol de la tabla pública
+            if (usuarioValido.rol === 'admin' || usuarioValido.rol === 'vendedor') {
                 window.location.href = "panel.html";
             } else {
                 window.location.href = "app.html";
             }
 
         } catch (err) {
-            console.error("Error capturado en Login:", err);
-            errDiv.innerText = "Error de conexión: No se pudo verificar el usuario.";
+            console.error("Detalles del error interno:", err);
+            errDiv.innerText = "Error de comunicación: " + err.message;
             errDiv.style.display = "block";
         } finally {
-            // Restaurar el botón pase lo que pase
+            // El bloque 'finally' asegura que pase lo que pase, el botón se vuelva a activar
             btnLogin.innerText = "Iniciar Sesión";
             btnLogin.disabled = false;
         }
