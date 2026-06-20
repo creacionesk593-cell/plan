@@ -10,14 +10,14 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; height: 100vh; }
         .login-card { background: var(--card); padding: 35px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid #334155; }
-        h2 { text-align: center; margin-bottom: 25px; color: #fff; font-size: 24px; }
+        h2 { text-align: center; margin-bottom: 25px; color: #fff; font-size: 24px; font-weight: 600; }
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-size: 13px; color: #94a3b8; }
         .form-control { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: white; font-size: 14px; }
         .form-control:focus { border-color: var(--blue); outline: none; }
         .btn { background: var(--blue); color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; font-size: 15px; margin-top: 10px; }
         .btn:hover { background: #2563eb; }
-        .error-msg { color: #ef4444; font-size: 13px; margin-top: 10px; text-align: center; display: none; }
+        .error-msg { color: #ef4444; font-size: 13px; margin-top: 15px; text-align: center; display: none; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.2); }
     </style>
 </head>
 <body>
@@ -32,7 +32,7 @@
         <label>Contraseña Acceso</label>
         <input type="password" id="password" class="form-control" placeholder="••••••••" required>
     </div>
-    <button class="btn" onclick="ejecutarLogin()">Iniciar Sesión</button>
+    <button class="btn" id="btn-login" onclick="ejecutarLogin()">Iniciar Sesión</button>
     <div id="error" class="error-msg"></div>
 </div>
 
@@ -42,7 +42,11 @@
         const emailInput = document.getElementById('email').value.trim();
         const passwordInput = document.getElementById('password').value.trim();
         const errDiv = document.getElementById('error');
+        const btnLogin = document.getElementById('btn-login');
+        
+        // Limpiar estados previos
         errDiv.style.display = "none";
+        errDiv.innerText = "";
 
         if(!emailInput || !passwordInput) {
             errDiv.innerText = "Por favor, complete todos los campos.";
@@ -50,34 +54,57 @@
             return;
         }
 
-        // 🔍 Consulta directa sobre tu tabla personalizada
-        const { data: perfil, error } = await supabase
-            .from('perfiles')
-            .select('*')
-            .eq('email', emailInput)
-            .eq('password', passwordInput)
-            .single();
+        try {
+            // Cambiar estado del botón para que el usuario sepa que está cargando
+            btnLogin.innerText = "Verificando...";
+            btnLogin.disabled = true;
 
-        if (error || !perfil) {
-            errDiv.innerText = "Correo o contraseña incorrectos.";
+            // 🔍 Consulta directa sobre tu tabla personalizada
+            const { data: perfil, error } = await supabase
+                .from('perfiles')
+                .select('*')
+                .eq('email', emailInput)
+                .eq('password', passwordInput);
+
+            // Si hay un error de red o de Supabase
+            if (error) {
+                throw new Error("Error en la base de datos: " + error.message);
+            }
+
+            // Si la consulta no trajo registros significa que los datos no coinciden
+            if (!perfil || perfil.length === 0) {
+                errDiv.innerText = "Correo electrónico o contraseña incorrectos.";
+                errDiv.style.display = "block";
+                return;
+            }
+
+            const usuarioEcontrado = perfil[0];
+
+            // Validar si el usuario está activo en tu tabla
+            if (!usuarioEcontrado.activo) {
+                errDiv.innerText = "Esta cuenta ha sido desactivada por el administrador.";
+                errDiv.style.display = "block";
+                return;
+            }
+
+            // Guardamos la sesión completa de manera directa para el uso de las otras páginas
+            localStorage.setItem('usuario_bingo', JSON.stringify(usuarioEcontrado));
+
+            // Enrutamiento correcto según el rol de la tabla
+            if (usuarioEcontrado.rol === 'admin' || usuarioEcontrado.rol === 'vendedor') {
+                window.location.href = "panel.html";
+            } else {
+                window.location.href = "app.html";
+            }
+
+        } catch (err) {
+            console.error("Error capturado en Login:", err);
+            errDiv.innerText = "Error de conexión: No se pudo verificar el usuario.";
             errDiv.style.display = "block";
-            return;
-        }
-
-        if (!perfil.activo) {
-            errDiv.innerText = "Esta cuenta ha sido desactivada.";
-            errDiv.style.display = "block";
-            return;
-        }
-
-        // Guardamos la sesión de manera directa
-        localStorage.setItem('usuario_bingo', JSON.stringify(perfil));
-
-        // Enrutamiento directo
-        if (perfil.rol === 'admin' || perfil.rol === 'vendedor') {
-            window.location.href = "panel.html";
-        } else {
-            window.location.href = "app.html";
+        } finally {
+            // Restaurar el botón pase lo que pase
+            btnLogin.innerText = "Iniciar Sesión";
+            btnLogin.disabled = false;
         }
     }
 </script>
