@@ -12,7 +12,7 @@
         header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid #334155; margin-bottom: 20px; }
         .workspace { display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
         .control-box { background: var(--card); padding: 20px; border-radius: 10px; border: 1px solid #334155; }
-        .game-area { background: var(--card); padding: 25px; border-radius: 10px; border: 1px solid #334155; min-height: 400px; display: flex; justify-content: center; align-items: center; border-style: dashed; color: #64748b; }
+        .game-area { background: var(--card); padding: 25px; border-radius: 10px; border: 1px solid #334155; min-height: 400px; display: flex; justify-content: center; align-items: center; color: #64748b; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-size: 13px; color: #94a3b8; }
         .form-control { width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: white; }
@@ -48,7 +48,7 @@
     </aside>
 
     <main class="game-area" id="pantalla-juego">
-        <p>[Lógica visual de dibujo y vectorización integrada correctamente]</p>
+        <p>[Módulo de juego activo]</p>
     </main>
 </div>
 
@@ -60,7 +60,7 @@
         clienteLogueado = await verificarAccesoCliente();
         if(clienteLogueado) {
             document.body.style.display = "block";
-            document.getElementById('user-info').innerText = `Suscripción Activa para: ${clienteLogueado.nombre_completo}`;
+            document.getElementById('user-info').innerText = `Cliente: ${clienteLogueado.nombre_completo}`;
             listarMisConfiguraciones();
         }
     });
@@ -69,7 +69,6 @@
         const nombre = document.getElementById('nombre-config').value.trim();
         if (!nombre) { alert("Asigne un nombre."); return; }
 
-        // Aquí inyectas el objeto estructurado de tus cartones (como bingo_wilian4.json)
         const objetoJsonEstructura = { version: "1.0", configs: [] }; 
 
         const { error } = await supabase.from('configuraciones_json').insert([
@@ -77,7 +76,7 @@
         ]);
 
         if (error) alert(error.message);
-        else { alert("Plantilla JSON guardada con éxito."); document.getElementById('nombre-config').value = ""; listarMisConfiguraciones(); }
+        else { alert("JSON guardado."); document.getElementById('nombre-config').value = ""; listarMisConfiguraciones(); }
     }
 
     async function listarMisConfiguraciones() {
@@ -87,13 +86,13 @@
         if(configs) {
             configs.forEach(c => {
                 const opt = document.createElement('option');
-                opt.value = c.id; opt.dataset.json = JSON.stringify(c.json_data); opt.textContent = c.nombre_config;
+                opt.value = c.id; opt.textContent = c.nombre_config;
                 select.appendChild(opt);
             });
         }
     }
 
-    async function cerrarSesion() { await supabase.auth.signOut(); window.location.href = "index.html"; }
+    function cerrarSesion() { localStorage.removeItem('usuario_bingo'); window.location.href = "index.html"; }
 </script>
 </body>
 </html>
